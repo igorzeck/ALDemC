@@ -6,9 +6,11 @@ Lista encadeada simples
 // TODO: Lidar com deleção de elementos da lista
 #include "includes.h"
 
-// - Constats -
-unsigned TRUE = 1;
-unsigned FALSE = 0;
+// - Constantes -
+const unsigned TRUE = 1;
+const unsigned FALSE = 0;
+
+const int MAX_ARR_ENTS = 50;
 
 // Criação de struct representativa de uma lista e suas operações
 typedef struct No{
@@ -22,6 +24,11 @@ typedef struct Lista {
     No* raiz;
     int tamanho; // TBA
 } Lista;
+
+
+// -- Variáveis --
+
+Lista* lista_arr[50] = {NULL};  // Array de listas
 
 // Implementação de função para percorrer lista
 // Por padrão só vai até o final da lista
@@ -39,13 +46,73 @@ No* lista_per(Lista lista, int id) {
     return aux_el;
 }
 
+// -- Funções --
+// TODO: usar função que verifica se nome está na lista abaixo (em remover e adicionar)
+// Se estiver dentro retorna a posição, senão retorna menor que zero
+int arr_contem(char* nome) {
+    for (int i = 0; i < MAX_ARR_ENTS; i++) {
+        if (lista_arr[i]) {
+            if (!strcmp(lista_arr[i]->nome, nome)) {
+                return i;
+            }
+        }
+    }
+    return -1;
+} 
+
+// Adiciona lista To Be Added à pilha de listas
+void arr_adicionar(Lista* tba) {
+    // 1. Primeio percorre nomes
+    int free_id = -1;
+    for (int i = 0; i < MAX_ARR_ENTS; i++) {
+        // Pula elementos com conteúdos
+        if (lista_arr[i] != NULL) {
+            if (!strcmp(tba->nome, lista_arr[i]->nome)) {
+                free(lista_arr[i]);
+                lista_arr[i] = tba;
+                return;
+            }
+        }
+        else {
+            // Primeiro elemento livre encontrado
+            if (free_id < 0) {
+                free_id = i;
+            }
+        }
+    }
+    if (free_id >= 0) {
+        lista_arr[free_id] = tba;
+    }
+    ;
+}
+
+// Remove nome especificado da pilha de listas
+// Não tá adicionando o '\0'
+void arr_remover(char* nome) {
+    for (int i = 0; i < MAX_ARR_ENTS; i++) {
+        if (lista_arr[i]) {
+            if (!strcmp(lista_arr[i]->nome, nome)) {
+                free(lista_arr[i]);
+                lista_arr[i] = NULL;
+            }
+        }
+    }
+}
+
 // - Create -
 
 // Cria lista a partir de uma string
+// TODO: Tacar toda lista aqui criada 
+// Em uma pilha de listas (facilita pra apagar depois)
+// Listas com nome igual se sobrescrevem
+// E no final são todas desalocadas!
 Lista* listificar(char* str, char* nome) {
     Lista* lista = (Lista*)malloc(sizeof(Lista));
     lista->raiz = (No*)malloc(sizeof(No));
     strcpy(lista->nome, nome);
+
+    // Adiciona lista à pilha de listas
+    arr_adicionar(lista);
     // Divide string em partes
     // Primeiro verifica se o primeiro caracter é '['
     unsigned open_brack = FALSE;
@@ -101,6 +168,20 @@ Lista* listificar(char* str, char* nome) {
     return lista; 
 }
 
+// Copia valores src para dest
+void lista_copiar(Lista* dest, Lista src) {
+    No* no_aux = src.raiz;
+    No** no_dest = &(dest->raiz);
+    while(no_aux) {
+        (*no_dest) = (No*)malloc(sizeof(No));
+        (*no_dest)->valor = no_aux->valor;
+        no_dest = &(*no_dest)->prox;
+
+        no_aux = no_aux->prox;
+    }
+    (*no_dest) = NULL;
+}
+
 // -- Funções de inserção --
 // - Insert -
 // Insere um elemento na lista
@@ -126,11 +207,21 @@ void lista_inserir(Lista* lista, int val, int id) {
 // - Remove -
 // ...
 
-// - Extend (por Left join) -
-// Costura as duas listas por Left join
-void lista_costurar(Lista* l1, Lista l2) {
-    No* cauda = lista_per(*l1, -1);
-    cauda->prox = l2.raiz;
+// - Extend (por Left/Right join) -
+// Costura as duas listas
+void lista_costurar(Lista* l1, Lista* l2, char join) {
+    if (join == 'R') {
+        No* cauda = lista_per(*l1, -1);
+        cauda->prox = l2->raiz;
+        return;
+    }
+    if (join == 'L') {
+        No* cauda = lista_per(*l2, -1);
+        cauda->prox = l1->raiz;
+        l1->raiz = l2->raiz;
+        return;
+    }
+    /// Impossível chegar aqui...!
 }
 // TODO: Função par extender a lista (costurar)
 
@@ -150,6 +241,25 @@ void lista_deletar(No** cabeca){
     *cabeca = NULL;
 }
 
+
+// Função para tornar lista um texto
+// void lista_str(Lista lista) {
+//     char str[MAX_TEXT];
+//     char aux_str[MAX_TEXT];
+//     No* aux_el = lista.raiz;
+//     printf("%s: [", lista.nome);
+//     sprintf(aux_str, "%d", aux_el->valor);
+//     strcat(str, aux_str);
+//     while (aux_el != NULL) {
+//         sprintf(aux_str, "%d", aux_el->valor);
+//         strcat(str, aux_str);
+//         aux_el = aux_el->prox;
+//         if (aux_el) {
+//             strcat(str, ",");
+//         }
+//     }
+//     printf("]");
+// }
 
 // Função para printar lista
 void lista_print(Lista lista) {
