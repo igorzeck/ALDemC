@@ -44,17 +44,16 @@ void parser(char* linha) {
         strcpy(curr_texto, texto_ents[cur_ent]);
 
         if (aux_op < 0) {
-            aux_op = str_is_in(curr_texto, OPS);
+            aux_op = strIn(curr_texto, OPS);
             if (aux_op >= 0) {
                 continue;
             }
         }
 
         // Verifica se é uma entidade
-        // TODO: Fazer retornar o texto das listas!
-        int arr_id = arr_contem(curr_texto);
+        int arr_id = arrContem(curr_texto);
         if (arr_id > 0) {
-            lista_copiar(temp_l, *lista_arr[arr_id]);
+            listaCopiar(temp_l, *lista_arr[arr_id]);
         }
         else {
             char curr_nome[50];
@@ -69,7 +68,7 @@ void parser(char* linha) {
                 ent_final = temp_l;
             }
             else {
-                lista_costurar(ent_final, temp_l, 'L');
+                listaCosturar(ent_final, temp_l, 'L');
             }
             aux_op = -1;
             break;
@@ -80,8 +79,8 @@ void parser(char* linha) {
             // Meio silly, mas fazer o quê...
             Lista* nova_lista = (Lista*)malloc(sizeof(Lista));
             strcpy(nova_lista->nome, curr_texto);
-            lista_copiar(nova_lista, *ent_final);
-            arr_adicionar(nova_lista);
+            listaCopiar(nova_lista, *ent_final);
+            arrAdicionar(nova_lista);
 
             aux_op = -1;
             break;
@@ -93,12 +92,12 @@ void parser(char* linha) {
             break;
         }
     }
-    lista_print(*ent_final);
+    listaPrintar(*ent_final);
     // Apaga as listas temporárias
     for (int i = 0; i < cont_lista; i++) {
         char curr_nome[50];
         sprintf(curr_nome, "%d", i);
-        arr_remover(curr_nome);
+        arrRemover(curr_nome);
     }
 }
 
@@ -119,7 +118,7 @@ void interface() {
             printf("Listas:\n");
             for (int i = 0; i < MAX_ARR_ENTS; i++) {
                 if (lista_arr[i]) {
-                    lista_print(*lista_arr[i]);
+                    listaPrintar(*lista_arr[i]);
                 }
                 else {
                     printf("[] ");

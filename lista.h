@@ -25,6 +25,15 @@ typedef struct Lista {
     int tamanho; // TBA
 } Lista;
 
+// -- Definições --
+void listaDeletar(Lista* lista);
+void listaPrintar(Lista lista);
+void listaInserir(Lista* lista, int val, int id);
+void listaCosturar(Lista* l1, Lista* l2, char join);
+void arrAdicionar(Lista* tba);
+void arrRemover(char* nome);
+int arrContem(char* nome);
+
 
 // -- Variáveis --
 
@@ -49,7 +58,7 @@ No* lista_per(Lista lista, int id) {
 // -- Funções --
 // TODO: usar função que verifica se nome está na lista abaixo (em remover e adicionar)
 // Se estiver dentro retorna a posição, senão retorna menor que zero
-int arr_contem(char* nome) {
+int arrContem(char* nome) {
     for (int i = 0; i < MAX_ARR_ENTS; i++) {
         if (lista_arr[i]) {
             if (!strcmp(lista_arr[i]->nome, nome)) {
@@ -61,7 +70,7 @@ int arr_contem(char* nome) {
 } 
 
 // Adiciona lista To Be Added à pilha de listas
-void arr_adicionar(Lista* tba) {
+void arrAdicionar(Lista* tba) {
     // 1. Primeio percorre nomes
     int free_id = -1;
     for (int i = 0; i < MAX_ARR_ENTS; i++) {
@@ -88,11 +97,12 @@ void arr_adicionar(Lista* tba) {
 
 // Remove nome especificado da pilha de listas
 // Não tá adicionando o '\0'
-void arr_remover(char* nome) {
+void arrRemover(char* nome) {
     for (int i = 0; i < MAX_ARR_ENTS; i++) {
         if (lista_arr[i]) {
             if (!strcmp(lista_arr[i]->nome, nome)) {
                 free(lista_arr[i]);
+                listaDeletar(lista_arr[i]);
                 lista_arr[i] = NULL;
             }
         }
@@ -112,7 +122,7 @@ Lista* listificar(char* str, char* nome) {
     strcpy(lista->nome, nome);
 
     // Adiciona lista à pilha de listas
-    arr_adicionar(lista);
+    arrAdicionar(lista);
     // Divide string em partes
     // Primeiro verifica se o primeiro caracter é '['
     unsigned open_brack = FALSE;
@@ -169,13 +179,13 @@ Lista* listificar(char* str, char* nome) {
 }
 
 // Copia valores src para dest
-void lista_copiar(Lista* dest, Lista src) {
+void listaCopiar(Lista* dest, Lista src) {
     No* no_aux = src.raiz;
     No** no_dest = &(dest->raiz);
     while(no_aux) {
         (*no_dest) = (No*)malloc(sizeof(No));
         (*no_dest)->valor = no_aux->valor;
-        no_dest = &(*no_dest)->prox;
+        no_dest = &((*no_dest)->prox);
 
         no_aux = no_aux->prox;
     }
@@ -185,7 +195,7 @@ void lista_copiar(Lista* dest, Lista src) {
 // -- Funções de inserção --
 // - Insert -
 // Insere um elemento na lista
-void lista_inserir(Lista* lista, int val, int id) {
+void listaInserir(Lista* lista, int val, int id) {
     // Percorre até id
     No* el = NULL;
     if (id != 0) {
@@ -209,7 +219,7 @@ void lista_inserir(Lista* lista, int val, int id) {
 
 // - Extend (por Left/Right join) -
 // Costura as duas listas
-void lista_costurar(Lista* l1, Lista* l2, char join) {
+void listaCosturar(Lista* l1, Lista* l2, char join) {
     if (join == 'R') {
         No* cauda = lista_per(*l1, -1);
         cauda->prox = l2->raiz;
@@ -227,18 +237,21 @@ void lista_costurar(Lista* l1, Lista* l2, char join) {
 
 
 // - Delete (lista toda) -
-// TODO: Mudar para receber lista
-void lista_deletar(No** cabeca){
+void listaDeletar(Lista* lista){
     No* next_el = NULL;
-    No* aux_el = *cabeca;
+    No* aux_el = lista->raiz;
+    // printf("\nDeletando\n");
+    // listaPrintar(*lista);
     while (aux_el != NULL) {
         next_el = aux_el->prox;
-        printf("Deletando %d\n", aux_el->valor);
-        free(aux_el);
+        // printf("\nDeletando %d\n", aux_el->valor);
+        // free(aux_el);
+        aux_el = NULL;
+        // TODO: Lidar com elementos costurados!!!
+        // Não tá apagando ponteiros certos
 
         aux_el = next_el;
     }
-    *cabeca = NULL;
 }
 
 
@@ -262,7 +275,7 @@ void lista_deletar(No** cabeca){
 // }
 
 // Função para printar lista
-void lista_print(Lista lista) {
+void listaPrintar(Lista lista) {
     No* aux_el = lista.raiz;
     printf("%s: [", lista.nome);
     while (aux_el != NULL) {
