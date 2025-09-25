@@ -1,16 +1,29 @@
 // Header para o parser (leitor) da interface interativa
 #include "lista.h"
-#include "functionals.h"
 
 // -- Constantes --
 
+// Comandos (Nome, ID, Descrição)
+char* COMM[4][3] = {
+    {"quit", "0", "Sai do programa."},
+    {"exit", "0", "Sai do programa."},
+    {"all", "1", "Mostra todas as listas no ambiente."},
+    {"END", "-1", "END"}
+};
+
 char* OPS[] = {
+    // Técnicos
     "v", // Costura (União) - 0
     ":", // Sequência - 1
     "=", // Atribuição - 2
+    // TODO: "[..]" Acessor?
+    // TODO: Usar id para ordenar operações
+    // Matemáticos
     "+", // Soma - 3 
     "-", // Subtração - 4 
     "*", // Multiplicação - 5
+    "/", // Divisão por inteiro - 6
+    // Lógicos
     "0"
 };
 
@@ -38,14 +51,10 @@ void parser(char* linha) {
     char ent_texto_final[MAX_TEXT];
     strcpy(ent_final->nome, "Out");
     ent_final->raiz = NULL;
-    
-    // Quantidade de listas inseridas na leitura dessa linha (sequencialmente)
-    // int cont_lista = 0;
 
     while (cur_ent-- > 0) {
         char curr_texto[MAX_TEXT];
         Lista* temp_l;
-        // Por padrão sempre aloca alguma coisa
         temp_l = listaCriar();
         strcpy(curr_texto, texto_ents[cur_ent]);
 
@@ -62,9 +71,7 @@ void parser(char* linha) {
             listaCopiar(temp_l, *lista_arr[arr_id]);
         }
         else {
-            // char curr_nome[50];
-            // sprintf(curr_nome, "%d",  cont_lista++);
-            temp_l = listificar(curr_texto, "0");
+            temp_l = listificar(curr_texto, "__temp__");
         }
 
         switch (aux_op)
@@ -92,7 +99,7 @@ void parser(char* linha) {
             break;
         default:
             // Por agora as operações sempre rodam da esquerda pra direita
-            if (aux_op >= 3 && aux_op <= 5) {
+            if (aux_op >= 3 && aux_op <= 6) {
                 listaOperar(temp_l, *ent_final, aux_op);
                 listaCopiar(ent_final, *temp_l);
                 aux_op = -1;
@@ -105,49 +112,68 @@ void parser(char* linha) {
         }
     }
     listaPrintar(*ent_final);
-    // Apaga as listas temporárias
-    // for (int i = 0; i < cont_lista; i++) {
-    //     char curr_nome[50];
-    //     sprintf(curr_nome, "%d", i);
-    //     arrRemover(curr_nome);
-    // }
-    arrRemover("0");
+    arrRemover("__temp__");
     listaDeletar(ent_final);
+}
+
+void executarComm(int comm) {
+    switch (comm)
+    {
+    case 1: // all
+        // Print da pilha de listas
+        printf("Listas:\n");
+        for (int i = 0; i < MAX_ARR_ENTS; i++) {
+            if (lista_arr[i]) {
+                listaPrintar(*lista_arr[i]);
+            }
+            else {
+                printf("[] ");
+            }
+            printf("| %p \n", lista_arr[i]);
+        }
+        break;
+    default:
+        break;
+    }
 }
 
 void interface() {
     char linha[200];
+    int interrupt = FALSE;
+    int comm = -1;
     // strcmp retorna 0 'False' quando comparação está correta
-    while (strcmp(linha, "quit")) {
+    while (TRUE) {
         printf("> ");
         // Usa esse regex do scanset (%) 
         // para ler linha até um newline ser encontrado:
         scanf("%[^\n]", linha);
         
         // Split em 'C' (feito por espaço por agora)
-        // Talvez vá ter que ser feito na mão...
-        
-        // Print da pilha de listas
-        if (!strcmp(linha, "all")) {
-            printf("Listas:\n");
-            for (int i = 0; i < MAX_ARR_ENTS; i++) {
-                if (lista_arr[i]) {
-                    listaPrintar(*lista_arr[i]);
-                }
-                else {
-                    printf("[] ");
-                }
-                printf("| %p \n", lista_arr[i]);
+        // 1. Verifica se é comando
+        // ? para ver descrição do comando?
+        for (int i = 0; COMM[i][0] != "END"; i++) {
+            if (!strcmp(COMM[i][0], linha)) {
+                comm = atoi(COMM[i][1]);
+                break;
             }
         }
 
-        parser(linha);
-
-        // printf("%s\n", linha);
-
+        // Para linha aqui se for comando
+        if (comm >= 0) {
+            executarComm(comm);
+            if (!comm) {
+                break;
+            }
+            comm = -1;
+        }
+        else {
+            // Se não for comando
+            // Lê linha como conjunto de listas
+            parser(linha);
+        }
+        // Consome o newline que sobrou
         printf("\n");
 
-        // Consome o newline que sobrou
         char c;
         scanf("%c", &c);
     }

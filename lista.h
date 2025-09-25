@@ -2,15 +2,10 @@
 Implementação de lista de valores atipados
 Lista encadeada simples
 */
-// TODO: Função para alocamento de elementos ou criar cabeça de lista
-// TODO: Lidar com deleção de elementos da lista
-#include "includes.h"
+// TODO: Lista vazia ainda tá muito estranho (Depende ordem 'a + []' é != '[] + a') e [2] + [] dá erro!
+#include "functionals.h"
 
-// - Constantes -
-const unsigned TRUE = 1;
-const unsigned FALSE = 0;
-
-const int MAX_ARR_ENTS = 50;
+// - Definições -
 
 // Criação de struct representativa de uma lista e suas operações
 typedef struct No{
@@ -25,23 +20,27 @@ typedef struct Lista {
     int tamanho; // TBA
 } Lista;
 
-// -- Definições --
+int strIn(char*, char**);
+int eNumerico(char*);
 
 Lista* listaCriar();
+void listaOperar(Lista*, Lista, int);
 void listaDeletar(Lista* lista);
 void listaPrintar(Lista lista);
 void listaInserir(Lista* lista, int val, int id);
+void listaCopiar(Lista*, Lista) ;
 void listaCosturar(Lista* l1, Lista l2, char join); 
+Lista* listificar(char*, char*);
+
 void listaDeletarNos(Lista* lista);
 void arrAdicionar(Lista* tba);
 void arrRemover(char* nome);
 int arrContem(char* nome);
 
-void listaOperar(Lista*, Lista, int);
+// - Constantes -
+const int MAX_ARR_ENTS = 50;
 
-
-// -- Variáveis --
-
+// - Variáveis -
 Lista* lista_arr[50] = {NULL};  // Array de listas
 
 // Implementação de função para percorrer lista
@@ -147,8 +146,13 @@ Lista* listificar(char* str, char* nome) {
         }
         if (c == ']') {
             curr_num[aux_num] = '\0';
-            num_stack[n++] = atoi(curr_num);
             aux_num = 0;
+
+            if (!eNumerico(curr_num)) {
+                continue;
+            }
+
+            num_stack[n++] = atoi(curr_num);
             open_brack = FALSE;
             break;
         }
@@ -158,8 +162,13 @@ Lista* listificar(char* str, char* nome) {
             }
             else {
                 curr_num[aux_num] = '\0';
-                num_stack[n++] = atoi(curr_num);
                 aux_num = 0;
+
+                if (!eNumerico(curr_num)) {
+                    continue;
+                }
+                
+                num_stack[n++] = atoi(curr_num);
             }
         }
     } while (c != EOF);
@@ -306,6 +315,9 @@ void listaOperar(Lista* dest, Lista l1, int op) {
                 break;
             case 5: // *
                 no_atual->valor *= no_aux->valor;
+                break;
+            case 6: // /
+                no_atual->valor /= no_aux->valor;
                 break;
         }
 
