@@ -26,13 +26,18 @@ typedef struct Lista {
 } Lista;
 
 // -- Definições --
+
+Lista* listaCriar();
 void listaDeletar(Lista* lista);
 void listaPrintar(Lista lista);
 void listaInserir(Lista* lista, int val, int id);
-void listaCosturar(Lista* l1, Lista* l2, char join);
+void listaCosturar(Lista* l1, Lista l2, char join); 
+void listaDeletarNos(Lista* lista);
 void arrAdicionar(Lista* tba);
 void arrRemover(char* nome);
 int arrContem(char* nome);
+
+void listaOperar(Lista*, Lista, int);
 
 
 // -- Variáveis --
@@ -41,11 +46,12 @@ Lista* lista_arr[50] = {NULL};  // Array de listas
 
 // Implementação de função para percorrer lista
 // Por padrão só vai até o final da lista
-No* lista_per(Lista lista, int id) {
+// TODO: Consertar bug de quando '[] + algo' dá erro de segmentação
+No* listaPer(Lista lista, int id) {
     No* aux_el = lista.raiz;
 
     for (int aux_i = 1; aux_el->prox != NULL; aux_i++) {
-        // O operador ternário é só pra caso o id seja negativo ele ir pro até o fim
+        // O operador ternário é só pra caso o id seja negativo ele ir até o fim
         if ((id > 0) ? (aux_i > id) : 0) {
             break;
         }
@@ -101,7 +107,6 @@ void arrRemover(char* nome) {
     for (int i = 0; i < MAX_ARR_ENTS; i++) {
         if (lista_arr[i]) {
             if (!strcmp(lista_arr[i]->nome, nome)) {
-                free(lista_arr[i]);
                 listaDeletar(lista_arr[i]);
                 lista_arr[i] = NULL;
             }
@@ -163,6 +168,7 @@ Lista* listificar(char* str, char* nome) {
     No** no_atual = &(lista->raiz);
     for (int i = 0; i < n; i++) {
         (*no_atual)->valor = num_stack[i];
+        lista->tamanho++;
         if ((i + 1) < n) {
             (*no_atual)->prox = (No*)malloc(sizeof(No));
             no_atual = &((*no_atual)->prox);
@@ -178,15 +184,32 @@ Lista* listificar(char* str, char* nome) {
     return lista; 
 }
 
+// Cria lista padrão
+// Por agora só cria lista vazia
+Lista* listaCriar() {
+    Lista* nova_lista = (Lista*)malloc(sizeof(Lista));
+    strcpy(nova_lista->nome, "0");
+    nova_lista->raiz = NULL;
+    nova_lista->tamanho = 0;
+    return nova_lista;
+}
+
 // Copia valores src para dest
 void listaCopiar(Lista* dest, Lista src) {
     No* no_aux = src.raiz;
     No** no_dest = &(dest->raiz);
+    
+    // Deleta lista anteior
+    listaDeletarNos(dest);
+
+    // Passa o novo tamanho para a lista de destino
+    dest->tamanho = src.tamanho;
+    
+    // Copia, nó a nó, do src ao dest
     while(no_aux) {
         (*no_dest) = (No*)malloc(sizeof(No));
         (*no_dest)->valor = no_aux->valor;
         no_dest = &((*no_dest)->prox);
-
         no_aux = no_aux->prox;
     }
     (*no_dest) = NULL;
@@ -199,7 +222,7 @@ void listaInserir(Lista* lista, int val, int id) {
     // Percorre até id
     No* el = NULL;
     if (id != 0) {
-        el = lista_per(*lista, id - 1);
+        el = listaPer(*lista, id - 1);
     }
     else {
         el = (lista->raiz);
@@ -212,6 +235,7 @@ void listaInserir(Lista* lista, int val, int id) {
     No* prox_aux = el->prox;
     el->prox = novo_el;
     novo_el->prox = prox_aux;
+    lista->tamanho++;
 }
 
 // - Remove -
@@ -219,60 +243,77 @@ void listaInserir(Lista* lista, int val, int id) {
 
 // - Extend (por Left/Right join) -
 // Costura as duas listas
-void listaCosturar(Lista* l1, Lista* l2, char join) {
-    if (join == 'R') {
-        No* cauda = lista_per(*l1, -1);
-        cauda->prox = l2->raiz;
+void listaCosturar(Lista* l1, Lista l2, char join) {
+    if ((join != 'R') && (join != 'L')) {
+        // Inválido!
         return;
+    }
+    Lista* nl2 = (Lista*)malloc(sizeof(Lista));
+    listaCopiar(nl2, l2);
+
+    if (join == 'R') {
+        No* cauda = listaPer(*l1, -1);
+        cauda->prox = nl2->raiz;
     }
     if (join == 'L') {
-        No* cauda = lista_per(*l2, -1);
+        No* cauda = listaPer(*nl2, -1);
         cauda->prox = l1->raiz;
-        l1->raiz = l2->raiz;
-        return;
+        l1->raiz = nl2->raiz;
     }
-    /// Impossível chegar aqui...!
+    
+    l1->tamanho += nl2->tamanho;
+    return;
 }
-// TODO: Função par extender a lista (costurar)
+
+// - Delete de nó -
+void listaDeletarNos(Lista* lista) {
+    No* next_el = NULL;
+    No** aux_el = &(lista->raiz);
+    while (*aux_el != NULL) {
+        next_el = (*aux_el)->prox;
+        free(*aux_el);
+        *aux_el = NULL;
+
+        aux_el = &(next_el);
+    }
+}
 
 
 // - Delete (lista toda) -
 void listaDeletar(Lista* lista){
-    No* next_el = NULL;
-    No* aux_el = lista->raiz;
-    // printf("\nDeletando\n");
-    // listaPrintar(*lista);
-    while (aux_el != NULL) {
-        next_el = aux_el->prox;
-        // printf("\nDeletando %d\n", aux_el->valor);
-        // free(aux_el);
-        aux_el = NULL;
-        // TODO: Lidar com elementos costurados!!!
-        // Não tá apagando ponteiros certos
-
-        aux_el = next_el;
-    }
+    listaDeletarNos(lista);
+    free(lista);
 }
 
+// - Somar -
+void listaOperar(Lista* dest, Lista l1, int op) {
+    No* no_atual = dest->raiz;
+    
+    // Ignora soma se a lista l1 estiver vazia
+    if (l1.tamanho == 0) {
+        return;
+    }
+    No* no_aux = l1.raiz;
 
-// Função para tornar lista um texto
-// void lista_str(Lista lista) {
-//     char str[MAX_TEXT];
-//     char aux_str[MAX_TEXT];
-//     No* aux_el = lista.raiz;
-//     printf("%s: [", lista.nome);
-//     sprintf(aux_str, "%d", aux_el->valor);
-//     strcat(str, aux_str);
-//     while (aux_el != NULL) {
-//         sprintf(aux_str, "%d", aux_el->valor);
-//         strcat(str, aux_str);
-//         aux_el = aux_el->prox;
-//         if (aux_el) {
-//             strcat(str, ",");
-//         }
-//     }
-//     printf("]");
-// }
+    while (no_atual != NULL) {
+        // Soma valores
+        switch(op) {
+            case 3:  // +
+                no_atual->valor += no_aux->valor;
+                break;
+            case 4: // -
+                no_atual->valor -= no_aux->valor;
+                break;
+            case 5: // *
+                no_atual->valor *= no_aux->valor;
+                break;
+        }
+
+        // Passa ao próximo
+        no_atual = no_atual->prox;
+        no_aux = (no_aux->prox != NULL) ? no_aux->prox : l1.raiz;
+    }
+}
 
 // Função para printar lista
 void listaPrintar(Lista lista) {

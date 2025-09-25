@@ -5,9 +5,12 @@
 // -- Constantes --
 
 char* OPS[] = {
-    "+", // Costura - 0
+    "v", // Costura (União) - 0
     ":", // Sequência - 1
-    "=", // Atribuição - 2 
+    "=", // Atribuição - 2
+    "+", // Soma - 3 
+    "-", // Subtração - 4 
+    "*", // Multiplicação - 5
     "0"
 };
 
@@ -17,6 +20,7 @@ const int MAX_TEXT = 255;
 // -- Funções --
 // Faz o parser de uma dada linha
 // Fazer com que retorne texto talvez?
+// TODO: Tomar cuidado com palavras restritas!
 void parser(char* linha) {
     // Entidades de texto na linha (10 entidades de nomes de MAX_TEXT caracteres)
     char texto_ents[MAX_LINHA_ENTS][MAX_TEXT];
@@ -36,11 +40,13 @@ void parser(char* linha) {
     ent_final->raiz = NULL;
     
     // Quantidade de listas inseridas na leitura dessa linha (sequencialmente)
-    int cont_lista = 0;
+    // int cont_lista = 0;
 
     while (cur_ent-- > 0) {
         char curr_texto[MAX_TEXT];
         Lista* temp_l;
+        // Por padrão sempre aloca alguma coisa
+        temp_l = listaCriar();
         strcpy(curr_texto, texto_ents[cur_ent]);
 
         if (aux_op < 0) {
@@ -52,23 +58,23 @@ void parser(char* linha) {
 
         // Verifica se é uma entidade
         int arr_id = arrContem(curr_texto);
-        if (arr_id > 0) {
+        if (arr_id >= 0 && aux_op != 2) {
             listaCopiar(temp_l, *lista_arr[arr_id]);
         }
         else {
-            char curr_nome[50];
-            sprintf(curr_nome, "%d",  cont_lista++);
-            temp_l = listificar(curr_texto, curr_nome);
+            // char curr_nome[50];
+            // sprintf(curr_nome, "%d",  cont_lista++);
+            temp_l = listificar(curr_texto, "0");
         }
 
         switch (aux_op)
         {
-        case 0: // +
+        case 0: // v
             if (ent_final->raiz == NULL) {
-                ent_final = temp_l;
+                listaCopiar(ent_final, *temp_l);
             }
             else {
-                listaCosturar(ent_final, temp_l, 'L');
+                listaCosturar(ent_final, *temp_l, 'L');
             }
             aux_op = -1;
             break;
@@ -85,20 +91,28 @@ void parser(char* linha) {
             aux_op = -1;
             break;
         default:
+            // Por agora as operações sempre rodam da esquerda pra direita
+            if (aux_op >= 3 && aux_op <= 5) {
+                listaOperar(temp_l, *ent_final, aux_op);
+                listaCopiar(ent_final, *temp_l);
+                aux_op = -1;
+            }
             // Só por garantia to mantendo o default
             if (ent_final->raiz == NULL) {
-                ent_final = temp_l;
+                listaCopiar(ent_final, *temp_l);
             }
             break;
         }
     }
     listaPrintar(*ent_final);
     // Apaga as listas temporárias
-    for (int i = 0; i < cont_lista; i++) {
-        char curr_nome[50];
-        sprintf(curr_nome, "%d", i);
-        arrRemover(curr_nome);
-    }
+    // for (int i = 0; i < cont_lista; i++) {
+    //     char curr_nome[50];
+    //     sprintf(curr_nome, "%d", i);
+    //     arrRemover(curr_nome);
+    // }
+    arrRemover("0");
+    listaDeletar(ent_final);
 }
 
 void interface() {
