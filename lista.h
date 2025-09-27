@@ -127,6 +127,7 @@ Lista* listificar(char* str, char* nome) {
 
     // Adiciona lista à pilha de listas
     arrAdicionar(lista);
+
     // Divide string em partes
     // Primeiro verifica se o primeiro caracter é '['
     unsigned open_brack = FALSE;
@@ -134,44 +135,54 @@ Lista* listificar(char* str, char* nome) {
     int num_stack[64];
     int n = 0;
 
-    char curr_num[64];
+    // char curr_num[64];
     char c;
     int i = 0;
     int aux_num = 0;
-    do {
-        c = str[i++];
-        if (c == '[') {
-            open_brack = TRUE;
-            continue;
-        }
-        if (c == ']') {
-            curr_num[aux_num] = '\0';
-            aux_num = 0;
 
-            if (!eNumerico(curr_num)) {
-                continue;
-            }
-
+    // Divisão (retira por ',') -> strtok
+    char* curr_num = strtok(str,",");
+    while (curr_num != NULL) {
+        if (eNumerico(curr_num)) {
             num_stack[n++] = atoi(curr_num);
-            open_brack = FALSE;
-            break;
         }
-        if (open_brack) {
-            if (c != ',') {
-                curr_num[aux_num++] = c;
-            }
-            else {
-                curr_num[aux_num] = '\0';
-                aux_num = 0;
+        curr_num = strtok(NULL, ",");
+    }
 
-                if (!eNumerico(curr_num)) {
-                    continue;
-                }
+    // do {
+    //     c = str[i++];
+    //     if (c == '[') {
+    //         open_brack = TRUE;
+    //         continue;
+    //     }
+    //     if (c == ']') {
+    //         curr_num[aux_num] = '\0';
+    //         aux_num = 0;
+
+    //         if (!eNumerico(curr_num)) {
+    //             continue;
+    //         }
+
+    //         num_stack[n++] = atoi(curr_num);
+    //         open_brack = FALSE;
+    //         break;
+    //     }
+    //     if (open_brack) {
+    //         if (c != ',') {
+    //             curr_num[aux_num++] = c;
+    //         }
+    //         else {
+    //             curr_num[aux_num] = '\0';
+    //             aux_num = 0;
+
+    //             if (!eNumerico(curr_num)) {
+    //                 continue;
+    //             }
                 
-                num_stack[n++] = atoi(curr_num);
-            }
-        }
-    } while (c != EOF);
+    //             num_stack[n++] = atoi(curr_num);
+    //         }
+    //     }
+    // } while (c != EOF);
 
     // Deselegante, mas...
     No** no_atual = &(lista->raiz);
@@ -304,7 +315,7 @@ void listaOperar(Lista* dest, Lista l1, int op) {
     }
     No* no_aux = l1.raiz;
 
-    while (no_atual != NULL) {
+    while ((no_atual != NULL) && (no_aux != NULL)) {
         // Soma valores
         switch(op) {
             case 3:  // +
@@ -318,6 +329,9 @@ void listaOperar(Lista* dest, Lista l1, int op) {
                 break;
             case 6: // /
                 no_atual->valor /= no_aux->valor;
+                break;
+            case 7: // **
+                no_atual->valor = pot(no_atual->valor, no_aux->valor);
                 break;
         }
 

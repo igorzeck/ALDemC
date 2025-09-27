@@ -38,3 +38,13 @@ int eNumerico(char* str) {
     } while (str[++pos]);
     return TRUE;
 }
+
+
+// Potenciação de inteiros
+int pot(int base, int exp) {
+    int val = base;
+    for (int i = 0; i < exp; i++) {
+        val *= base;
+    }
+    return val;
+}

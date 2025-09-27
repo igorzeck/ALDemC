@@ -23,6 +23,7 @@ char* OPS[] = {
     "-", // Subtração - 4 
     "*", // Multiplicação - 5
     "/", // Divisão por inteiro - 6
+    "**", // Potênciação - 7
     // Lógicos
     "0"
 };
@@ -44,6 +45,9 @@ void parser(char* linha) {
         strcpy(texto_ents[cur_ent++], token);
         token = strtok(NULL, " ");
     }
+    // Pega ordem dos elementos
+    int ordem[MAX_LINHA_ENTS];
+    // Código...
 
     // Leitura dos elementos
     int aux_op = -1;
@@ -71,7 +75,23 @@ void parser(char* linha) {
             listaCopiar(temp_l, *lista_arr[arr_id]);
         }
         else {
-            temp_l = listificar(curr_texto, "__temp__");
+            int listavel = FALSE;
+            if (!eNumerico(curr_texto)) {
+                if ((curr_texto[0] == '[') 
+                    &&
+                    curr_texto[strlen(curr_texto) - 1] == ']') {
+                        // Corta partes de lista
+                        strcpy(curr_texto, curr_texto + 1);
+                        curr_texto[strlen(curr_texto) - 1] = '\0';
+                        listavel = TRUE;
+                    }
+            } else {
+                listavel = TRUE;
+            }
+            // Verifica se é listificável
+            if (listavel) {
+                temp_l = listificar(curr_texto, "__temp__");
+            }
         }
 
         switch (aux_op)
@@ -99,7 +119,7 @@ void parser(char* linha) {
             break;
         default:
             // Por agora as operações sempre rodam da esquerda pra direita
-            if (aux_op >= 3 && aux_op <= 6) {
+            if (aux_op >= 3 && aux_op <= 7) {
                 listaOperar(temp_l, *ent_final, aux_op);
                 listaCopiar(ent_final, *temp_l);
                 aux_op = -1;
