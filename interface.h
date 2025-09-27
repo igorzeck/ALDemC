@@ -11,56 +11,86 @@ char* COMM[4][3] = {
     {"END", "-1", "END"}
 };
 
+// Mudar para ordem matemática ficar no topo!
 char* OPS[] = {
+    "=", // Atribuição - 0
+    // Matemáticos
+    "**", // Potênciação - 1
+    "*", // Multiplicação - 2 
+    "/", // Divisão por inteiro - 3
+    "-", // Subtração - 4
+    "+", // Soma - 5
     // Técnicos
-    "v", // Costura (União) - 0
-    ":", // Sequência - 1
-    "=", // Atribuição - 2
+    "v", // Costura (União) - 6
+    ":", // Sequência - 7
     // TODO: "[..]" Acessor?
     // TODO: Usar id para ordenar operações
-    // Matemáticos
-    "+", // Soma - 3 
-    "-", // Subtração - 4 
-    "*", // Multiplicação - 5
-    "/", // Divisão por inteiro - 6
-    "**", // Potênciação - 7
+    
     // Lógicos
     "0"
 };
 
-const int MAX_LINHA_ENTS = 10;
+const int MAX_LINHA_ENTS = 32;
 const int MAX_TEXT = 255;
 
 // -- Funções --
 // Faz o parser de uma dada linha
 // Fazer com que retorne texto talvez?
 // TODO: Tomar cuidado com palavras restritas!
+// TODO: Separar em várias funções!
 void parser(char* linha) {
     // Entidades de texto na linha (10 entidades de nomes de MAX_TEXT caracteres)
     char texto_ents[MAX_LINHA_ENTS][MAX_TEXT];
+    char texto_aux[MAX_LINHA_ENTS][MAX_TEXT];
 
     char* token = strtok(linha," ");
-    int cur_ent = 0;
+    int aux_ent = 0;
     while (token != NULL) {
-        strcpy(texto_ents[cur_ent++], token);
+        strcpy(texto_aux[aux_ent++], token);
         token = strtok(NULL, " ");
     }
-    // Pega ordem dos elementos
-    int ordem[MAX_LINHA_ENTS];
-    // Código...
+    // Vai de operação em operação e deixa em pré-ordem as OPS
+    int cur_ent = 0;
+    for (int i = 0; OPS[i] != "0"; i++) {
+        int aux_aux_ent = aux_ent;
+        char* curr_op = OPS[i];
+        while (aux_aux_ent-- >= 0) {
+            // o texto_aux[aux_aux_ent][0] != '\0' teoricamente não precisa, mais por garantia...
+            if (!strcmp(texto_aux[aux_aux_ent], curr_op)) {
+                if (texto_aux[aux_aux_ent][0] != '\0') {
+                    strcpy(texto_ents[cur_ent++], texto_aux[aux_aux_ent]); // Operação
+                    texto_aux[aux_aux_ent][0] = '\0';
+                }
+                
+                if (aux_aux_ent - 1 >= 0 && texto_aux[aux_aux_ent - 1][0] != '\0') {
+                    strcpy(texto_ents[cur_ent++], texto_aux[aux_aux_ent - 1]); // Anterior
+                    texto_aux[aux_aux_ent - 1][0] = '\0';
+                }
+
+                if (aux_aux_ent + 1 < aux_ent && texto_aux[aux_aux_ent + 1][0] != '\0') {
+                    strcpy(texto_ents[cur_ent++], texto_aux[aux_aux_ent + 1]); // Posterior
+                    texto_aux[aux_aux_ent + 1][0] = '\0';
+                }  
+            }
+        }
+    }
 
     // Leitura dos elementos
     int aux_op = -1;
-    Lista* ent_final = (Lista*)malloc(sizeof(Lista));
+    int aux_cur = 0;
+    // Uma alternativa seria ent_final ser apenas uma Lista
+    // E se passar o endereço...
+    // Meio redundante ser ponteiro
+    Lista* ent_final = listaCriar();
     char ent_texto_final[MAX_TEXT];
     strcpy(ent_final->nome, "Out");
     ent_final->raiz = NULL;
 
-    while (cur_ent-- > 0) {
+    while (aux_cur < cur_ent) {
         char curr_texto[MAX_TEXT];
         Lista* temp_l;
         temp_l = listaCriar();
-        strcpy(curr_texto, texto_ents[cur_ent]);
+        strcpy(curr_texto, texto_ents[aux_cur++]);
 
         if (aux_op < 0) {
             aux_op = strIn(curr_texto, OPS);
@@ -75,6 +105,7 @@ void parser(char* linha) {
             listaCopiar(temp_l, *lista_arr[arr_id]);
         }
         else {
+            // Se não for, é lista?
             int listavel = FALSE;
             if (!eNumerico(curr_texto)) {
                 if ((curr_texto[0] == '[') 
@@ -94,21 +125,11 @@ void parser(char* linha) {
             }
         }
 
-        switch (aux_op)
+        int acao = (ent_final->tamanho > 0) ? aux_op : -1; 
+
+        switch (acao)
         {
-        case 0: // v
-            if (ent_final->raiz == NULL) {
-                listaCopiar(ent_final, *temp_l);
-            }
-            else {
-                listaCosturar(ent_final, *temp_l, 'L');
-            }
-            aux_op = -1;
-            break;
-        case 1: // :
-            aux_op = -1;
-            break;
-        case 2: // =
+        case 0: // =
             // Meio silly, mas fazer o quê...
             Lista* nova_lista = (Lista*)malloc(sizeof(Lista));
             strcpy(nova_lista->nome, curr_texto);
@@ -117,13 +138,32 @@ void parser(char* linha) {
 
             aux_op = -1;
             break;
-        default:
-            // Por agora as operações sempre rodam da esquerda pra direita
-            if (aux_op >= 3 && aux_op <= 7) {
-                listaOperar(temp_l, *ent_final, aux_op);
+        case 1: // **
+        case 2: // *
+        case 3: // /
+        case 4: // -
+        case 5: // +
+            listaOperar(ent_final, *temp_l, aux_op);
+            // listaCopiar(ent_final, *temp_l);
+            aux_op = -1;
+            // Só por garantia
+            // if (ent_final->raiz == NULL) {
+            //     listaCopiar(ent_final, *temp_l);
+            // }
+        break;
+        case 6: // v
+            if (ent_final->raiz == NULL) {
                 listaCopiar(ent_final, *temp_l);
-                aux_op = -1;
             }
+            else {
+                listaCosturar(ent_final, *temp_l, 'L');
+            }
+            aux_op = -1;
+            break;
+        case 7: // :
+            aux_op = -1;
+            break;
+        default:
             // Só por garantia to mantendo o default
             if (ent_final->raiz == NULL) {
                 listaCopiar(ent_final, *temp_l);

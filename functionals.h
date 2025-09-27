@@ -42,7 +42,7 @@ int eNumerico(char* str) {
 
 // Potenciação de inteiros
 int pot(int base, int exp) {
-    int val = base;
+    int val = 1;
     for (int i = 0; i < exp; i++) {
         val *= base;
     }

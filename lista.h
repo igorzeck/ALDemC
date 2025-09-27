@@ -3,6 +3,7 @@ Implementação de lista de valores atipados
 Lista encadeada simples
 */
 // TODO: Lista vazia ainda tá muito estranho (Depende ordem 'a + []' é != '[] + a') e [2] + [] dá erro!
+// TODO: Lista não precisa sempre ser ponteiro!
 #include "functionals.h"
 
 // - Definições -
@@ -302,6 +303,11 @@ void listaDeletarNos(Lista* lista) {
 // - Delete (lista toda) -
 void listaDeletar(Lista* lista){
     listaDeletarNos(lista);
+    
+    // Garantia para caso tente acessar deletado
+    strcpy(lista->nome, "DELETADO");
+    lista->tamanho = 0;
+    
     free(lista);
 }
 
@@ -318,20 +324,20 @@ void listaOperar(Lista* dest, Lista l1, int op) {
     while ((no_atual != NULL) && (no_aux != NULL)) {
         // Soma valores
         switch(op) {
-            case 3:  // +
-                no_atual->valor += no_aux->valor;
+            case 1:  // **
+                no_atual->valor = pot(no_atual->valor, no_aux->valor);
+                break;
+            case 2: // *
+                no_atual->valor *= no_aux->valor;
+                break;
+            case 3: // /
+                no_atual->valor /= no_aux->valor;
                 break;
             case 4: // -
                 no_atual->valor -= no_aux->valor;
                 break;
-            case 5: // *
-                no_atual->valor *= no_aux->valor;
-                break;
-            case 6: // /
-                no_atual->valor /= no_aux->valor;
-                break;
-            case 7: // **
-                no_atual->valor = pot(no_atual->valor, no_aux->valor);
+            case 5: // +
+                no_atual->valor += no_aux->valor;
                 break;
         }
 
