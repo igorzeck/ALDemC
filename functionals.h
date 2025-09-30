@@ -2,11 +2,18 @@
 #include "includes.h"
 
 // - Constantes -
-int FALSE = 0;
-int TRUE = 1;
+const int FALSE = 0;
+const int TRUE = 1;
+const int MAX_LINHA_ENTS = 32;
+const int MAX_TEXT = 255;
+const int MAX_TEXT_BUFFER = 255;
+
+const int LISTA = 1;
+const int NUMERO = 2;
+const int TEXTO = 3; // TODO: Usar
 
 // Retorna id da string na lista (negativo se não encontrado)
-int strIn(char* str, char** arr) {
+int strEmArr(char* str, char** arr) {
     for (int i = 0; strcmp(arr[i], "0") != 0; i++) {
         if (strcmp(str, arr[i]) == 0) {
             return i;
@@ -47,4 +54,23 @@ int pot(int base, int exp) {
         val *= base;
     }
     return val;
+}
+
+void matrizLimpar(char** matriz, int tamanho) {
+    for (int i = 0; i < tamanho; i++) {
+        free((matriz)[i]);
+    }
+    free(matriz);
+}
+
+void matrizPrintar(char** matriz, int tam) {
+    for (int i = 0; i < tam && matriz[i]; i++) {
+        printf("(%d: '%s') ", i, matriz[i]);
+    }
+}
+
+void intArrPrintar(int* arr, int tam) {
+    for (int i = 0; i < tam; i++) {
+        printf("(%d: %d)", i, arr[i]);
+    }
 }

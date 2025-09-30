@@ -21,10 +21,11 @@ typedef struct Lista {
     int tamanho; // TBA
 } Lista;
 
-int strIn(char*, char**);
+int strEmArr(char*, char**);
 int eNumerico(char*);
 
 Lista* listaCriar();
+int naLista(int val, Lista lista);
 void listaOperar(Lista*, Lista, int);
 void listaDeletar(Lista* lista);
 void listaPrintar(Lista lista);
@@ -34,14 +35,15 @@ void listaCosturar(Lista* l1, Lista l2, char join);
 Lista* listificar(char*, char*);
 
 void listaDeletarNos(Lista* lista);
+void listaDeletarNo(Lista* lista, int indice);
 void arrAdicionar(Lista* tba);
 void arrRemover(char* nome);
 int arrContem(char* nome);
 
-// - Constantes -
+// --- Constantes ---
 const int MAX_ARR_ENTS = 50;
 
-// - Variáveis -
+// --- Variáveis ---
 Lista* lista_arr[50] = {NULL};  // Array de listas
 
 // Implementação de função para percorrer lista
@@ -61,7 +63,17 @@ No* listaPer(Lista lista, int id) {
     return aux_el;
 }
 
-// -- Funções --
+// --- Funções ---
+// -- Auxiliares --
+// Retorna id na lista (negativo se não encontrado)
+int naLista(int val, Lista lista) {
+    for (No* no = lista.raiz; no != NULL; no = no->prox) {
+        if (val == no->valor) {
+            return val;
+        }
+    }
+    return -1;
+}
 // TODO: usar função que verifica se nome está na lista abaixo (em remover e adicionar)
 // Se estiver dentro retorna a posição, senão retorna menor que zero
 int arrContem(char* nome) {
@@ -74,6 +86,19 @@ int arrContem(char* nome) {
     }
     return -1;
 } 
+
+// É lista (1) e é número (2)
+int tipoElemento(char* str) {
+    if (!eNumerico(str)) {
+        if ((str[0] == '[') 
+            &&
+            str[strlen(str) - 1] == ']') {
+                return LISTA;
+            }
+    } else {
+        return NUMERO;
+    }
+}
 
 // Adiciona lista To Be Added à pilha de listas
 void arrAdicionar(Lista* tba) {
@@ -98,7 +123,6 @@ void arrAdicionar(Lista* tba) {
     if (free_id >= 0) {
         lista_arr[free_id] = tba;
     }
-    ;
 }
 
 // Remove nome especificado da pilha de listas
@@ -114,16 +138,16 @@ void arrRemover(char* nome) {
     }
 }
 
+// -- Funções de criação --
 // - Create -
-
 // Cria lista a partir de uma string
-// TODO: Tacar toda lista aqui criada 
 // Em uma pilha de listas (facilita pra apagar depois)
 // Listas com nome igual se sobrescrevem
 // E no final são todas desalocadas!
 Lista* listificar(char* str, char* nome) {
     Lista* lista = (Lista*)malloc(sizeof(Lista));
     lista->raiz = (No*)malloc(sizeof(No));
+    lista->tamanho = 0;
     strcpy(lista->nome, nome);
 
     // Adiciona lista à pilha de listas
@@ -150,41 +174,6 @@ Lista* listificar(char* str, char* nome) {
         curr_num = strtok(NULL, ",");
     }
 
-    // do {
-    //     c = str[i++];
-    //     if (c == '[') {
-    //         open_brack = TRUE;
-    //         continue;
-    //     }
-    //     if (c == ']') {
-    //         curr_num[aux_num] = '\0';
-    //         aux_num = 0;
-
-    //         if (!eNumerico(curr_num)) {
-    //             continue;
-    //         }
-
-    //         num_stack[n++] = atoi(curr_num);
-    //         open_brack = FALSE;
-    //         break;
-    //     }
-    //     if (open_brack) {
-    //         if (c != ',') {
-    //             curr_num[aux_num++] = c;
-    //         }
-    //         else {
-    //             curr_num[aux_num] = '\0';
-    //             aux_num = 0;
-
-    //             if (!eNumerico(curr_num)) {
-    //                 continue;
-    //             }
-                
-    //             num_stack[n++] = atoi(curr_num);
-    //         }
-    //     }
-    // } while (c != EOF);
-
     // Deselegante, mas...
     No** no_atual = &(lista->raiz);
     for (int i = 0; i < n; i++) {
@@ -207,11 +196,15 @@ Lista* listificar(char* str, char* nome) {
 
 // Cria lista padrão
 // Por agora só cria lista vazia
-Lista* listaCriar() {
+Lista* listaCriar(char* nome) {
     Lista* nova_lista = (Lista*)malloc(sizeof(Lista));
-    strcpy(nova_lista->nome, "0");
+    strcpy(nova_lista->nome, nome);
     nova_lista->raiz = NULL;
     nova_lista->tamanho = 0;
+    
+    // Adiciona lista ao Array
+    arrAdicionar(nova_lista);
+    
     return nova_lista;
 }
 
@@ -232,6 +225,26 @@ void listaCopiar(Lista* dest, Lista src) {
         (*no_dest)->valor = no_aux->valor;
         no_dest = &((*no_dest)->prox);
         no_aux = no_aux->prox;
+    }
+    (*no_dest) = NULL;
+}
+
+// - Recorte (acesso) -
+// Retira apenas aqueles de índice diferente
+void listaRecortar(Lista* dest, Lista indices) {
+    No* no_aux = indices.raiz;
+    No** no_dest = &(dest->raiz);
+
+    // Passa o novo tamanho para a lista de destino
+    dest->tamanho = indices.tamanho;
+    
+    // Retira, nó a nó, índices do dest (apenas índices iguais)
+    int indice = 0;
+    while(*no_dest) {
+        if (naLista(indice, *dest) < 0) {
+            listaDeletarNo(dest, indice);
+        }
+        indice++;
     }
     (*no_dest) = NULL;
 }
@@ -286,7 +299,33 @@ void listaCosturar(Lista* l1, Lista l2, char join) {
     return;
 }
 
-// - Delete de nó -
+// - Delete de um único nó -
+void listaDeletarNo(Lista* lista, int indice) {
+    No* next_el = NULL;
+    No* ant_el = NULL;
+    No** aux_el = &(lista->raiz);
+    int i = 0;
+    while (*aux_el != NULL) {
+        next_el = (*aux_el)->prox;
+        
+        if (indice == i++) {
+            free(*aux_el);
+            *aux_el = NULL;
+
+            // Junta pontas
+            if (ant_el) {
+                ant_el->prox = next_el;
+            }
+            lista->tamanho--;
+            return;
+        }
+        
+        ant_el = (*aux_el);
+        aux_el = &(next_el);
+    }
+}
+
+// - Delete de todos nós -
 void listaDeletarNos(Lista* lista) {
     No* next_el = NULL;
     No** aux_el = &(lista->raiz);
@@ -294,9 +333,9 @@ void listaDeletarNos(Lista* lista) {
         next_el = (*aux_el)->prox;
         free(*aux_el);
         *aux_el = NULL;
-
         aux_el = &(next_el);
     }
+    lista->tamanho = 0;
 }
 
 
@@ -306,11 +345,12 @@ void listaDeletar(Lista* lista){
     
     // Garantia para caso tente acessar deletado
     strcpy(lista->nome, "DELETADO");
-    lista->tamanho = 0;
+    // lista->tamanho = 0;
     
     free(lista);
 }
 
+// -- Funções matemática --
 // - Somar -
 void listaOperar(Lista* dest, Lista l1, int op) {
     No* no_atual = dest->raiz;
@@ -324,19 +364,19 @@ void listaOperar(Lista* dest, Lista l1, int op) {
     while ((no_atual != NULL) && (no_aux != NULL)) {
         // Soma valores
         switch(op) {
-            case 1:  // **
+            case 2:  // **
                 no_atual->valor = pot(no_atual->valor, no_aux->valor);
                 break;
-            case 2: // *
+            case 3: // *
                 no_atual->valor *= no_aux->valor;
                 break;
-            case 3: // /
+            case 4: // /
                 no_atual->valor /= no_aux->valor;
                 break;
-            case 4: // -
+            case 5: // -
                 no_atual->valor -= no_aux->valor;
                 break;
-            case 5: // +
+            case 6: // +
                 no_atual->valor += no_aux->valor;
                 break;
         }
@@ -347,7 +387,29 @@ void listaOperar(Lista* dest, Lista l1, int op) {
     }
 }
 
+// Lista para string
+char* listaStr(Lista lista) {
+    char* lista_str = (char*)calloc(lista.tamanho, sizeof(char) * MAX_TEXT);
+    int i = 0;
+    char temp_text[MAX_TEXT];
+    No* aux_el = lista.raiz;
+    while (aux_el != NULL) {
+        if (!i) {
+            strcpy(lista_str, "[");
+        }
+        sprintf(temp_text, "%d", aux_el->valor);
+        strcat(lista_str, temp_text);
+        aux_el = aux_el->prox;
+        if (aux_el) {
+            strcat(lista_str, ",");
+        }
+    }
+    strcat(lista_str, "]");
+    return lista_str;
+}
+
 // Função para printar lista
+// TODO: Usar lista STR aqui
 void listaPrintar(Lista lista) {
     No* aux_el = lista.raiz;
     printf("%s: [", lista.nome);
