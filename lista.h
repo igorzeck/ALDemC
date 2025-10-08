@@ -4,6 +4,7 @@ Lista encadeada simples
 */
 // TODO: Lista vazia ainda tá muito estranho (Depende ordem 'a + []' é != '[] + a') e [2] + [] dá erro!
 // TODO: Lista não precisa sempre ser ponteiro!
+// TODO: Usar o listaInserir
 #include "functionals.h"
 
 // - Definições -
@@ -30,7 +31,8 @@ void listaOperar(Lista*, Lista, int);
 void listaDeletar(Lista* lista);
 void listaPrintar(Lista lista);
 void listaInserir(Lista* lista, int val, int id);
-void listaCopiar(Lista*, Lista) ;
+void listaCopiar(Lista*, Lista);
+Lista* listaRecortar(Lista*, Lista);
 void listaCosturar(Lista* l1, Lista l2, char join); 
 Lista* listificar(char*, char*);
 
@@ -44,6 +46,7 @@ int arrContem(char* nome);
 const int MAX_ARR_ENTS = 50;
 
 // --- Variáveis ---
+// Se fossem só listas (sem ponteiros) não ia precisar atualizar os l1 e l2...
 Lista* lista_arr[50] = {NULL};  // Array de listas
 
 // Implementação de função para percorrer lista
@@ -52,14 +55,15 @@ Lista* lista_arr[50] = {NULL};  // Array de listas
 No* listaPer(Lista lista, int id) {
     No* aux_el = lista.raiz;
 
-    for (int aux_i = 1; aux_el->prox != NULL; aux_i++) {
-        // O operador ternário é só pra caso o id seja negativo ele ir até o fim
-        if ((id > 0) ? (aux_i > id) : 0) {
-            break;
+    if (aux_el) {
+        for (int aux_i = 1; aux_el->prox != NULL; aux_i++) {
+            // O operador ternário é só pra caso o id seja negativo ele ir até o fim
+            if ((id > 0) ? (aux_i > id) : 0) {
+                break;
+            }
+            aux_el = aux_el->prox;
         }
-        aux_el = aux_el->prox;
     }
-
     return aux_el;
 }
 
@@ -94,6 +98,8 @@ int tipoElemento(char* str) {
             &&
             str[strlen(str) - 1] == ']') {
                 return LISTA;
+            } else {
+                return TEXTO;
             }
     } else {
         return NUMERO;
@@ -107,7 +113,7 @@ void arrAdicionar(Lista* tba) {
     for (int i = 0; i < MAX_ARR_ENTS; i++) {
         // Pula elementos com conteúdos
         if (lista_arr[i] != NULL) {
-            if (!strcmp(tba->nome, lista_arr[i]->nome)) {
+            if (strcmp(tba->nome, lista_arr[i]->nome) == 0) {
                 free(lista_arr[i]);
                 lista_arr[i] = tba;
                 return;
@@ -152,10 +158,6 @@ Lista* listificar(char* str, char* nome) {
 
     // Adiciona lista à pilha de listas
     arrAdicionar(lista);
-
-    // Divide string em partes
-    // Primeiro verifica se o primeiro caracter é '['
-    unsigned open_brack = FALSE;
 
     int num_stack[64];
     int n = 0;
@@ -230,23 +232,28 @@ void listaCopiar(Lista* dest, Lista src) {
 }
 
 // - Recorte (acesso) -
-// Retira apenas aqueles de índice diferente
-void listaRecortar(Lista* dest, Lista indices) {
-    No* no_aux = indices.raiz;
-    No** no_dest = &(dest->raiz);
-
-    // Passa o novo tamanho para a lista de destino
-    dest->tamanho = indices.tamanho;
+// Retorna copia da lista contendo apenas indices na src
+Lista* listaRecortar(Lista* src, Lista indices) {
+    Lista* nova_lista = (Lista*)malloc(sizeof(Lista));
+    strcpy(nova_lista->nome, src->nome);
+    nova_lista->raiz = NULL;
+    nova_lista->tamanho = 0;
     
-    // Retira, nó a nó, índices do dest (apenas índices iguais)
-    int indice = 0;
-    while(*no_dest) {
-        if (naLista(indice, *dest) < 0) {
-            listaDeletarNo(dest, indice);
+    int i = 0;
+    No* no_atual = src->raiz;
+    
+    // Copia, nó a nó, do src ao dest
+    while(no_atual) {
+        if (naLista(i++, indices) >= 0) {
+            listaInserir(nova_lista,no_atual->valor,-1);
         }
-        indice++;
+        no_atual = no_atual->prox;
     }
-    (*no_dest) = NULL;
+
+    // Adiciona lista ao Array
+    arrAdicionar(nova_lista);
+    
+    return nova_lista;
 }
 
 // -- Funções de inserção --
@@ -264,9 +271,15 @@ void listaInserir(Lista* lista, int val, int id) {
     // Cria novo elemento
     No* novo_el = (No*)malloc(sizeof(No));
     novo_el->valor = val;
+    No* prox_aux;
+
+    if (!el) {
+        lista->raiz = novo_el;
+        el = lista->raiz;
+    }
     
     // Costura elemento(s) na lista
-    No* prox_aux = el->prox;
+    prox_aux = el->prox;
     el->prox = novo_el;
     novo_el->prox = prox_aux;
     lista->tamanho++;
@@ -394,7 +407,7 @@ char* listaStr(Lista lista) {
     char temp_text[MAX_TEXT];
     No* aux_el = lista.raiz;
     while (aux_el != NULL) {
-        if (!i) {
+        if (!(i++)) {
             strcpy(lista_str, "[");
         }
         sprintf(temp_text, "%d", aux_el->valor);

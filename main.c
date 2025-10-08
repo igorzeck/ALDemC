@@ -9,8 +9,11 @@
 // TODO: Talvez '?' possa dar informações sobre a lista (como unário)?
 // TODO: Erro quando juntos (sem operação?)!
 // TODO: [2,3] funciona, mas com espaço [2, 3] não!
+// TODO: Recursão para parêntesis (ir zerando eles a medida que lê)
+// TODO: Reimplementar nomes!
+// TODO: Se apenas um elemento nada ocorre
 
 int main(void) {
     // TODO: Separar em .c e .h implementação e declaração as funções
-    interface("");
+    interface("[3,4] ^ 1");
 }

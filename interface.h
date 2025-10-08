@@ -7,6 +7,7 @@ int* opsPosOrdenar(char**, int);
 char** dispor(char**, int);
 
 // -- Constantes --
+int OP_ATR = 0;
 
 // Comandos (Nome, ID, Descrição)
 char* COMM[4][3] = {
@@ -98,17 +99,18 @@ void parser(char* linha) {
     // Acho melhor um array só pro texto!!!
     // TODO: Unidimensiolizar o array 2D!
     // Entidades de texto na linha (10 entidades de nomes de MAX_TEXT caracteres)
-    char** texto_ents;
     char** texto_aux = (char**)calloc(MAX_LINHA_ENTS,sizeof(char*));
 
     // Tokeninzação
     char* token = strtok(linha," ");
     int aux_ent = 0;
     while (token != NULL) {
-        texto_aux[aux_ent] = (char*)calloc(MAX_TEXT, sizeof(char)); // + 1 para garantir o null
+        texto_aux[aux_ent] = (char*)calloc(MAX_TEXT, sizeof(char));
         strcpy(texto_aux[aux_ent++], token);
         token = strtok(NULL, " ");
     }
+    // Elemento final
+    // TODO: Adicionar elemento final?
 
     // Pilha de operações
     int* pilha_ops = opsPosOrdenar(texto_aux, aux_ent);
@@ -124,12 +126,14 @@ void calcPilha(char** texto_ents, int* pilha_ops, int aux_ent) {
     // Leitura dos elementos
     int aux_op = -1;
     int aux_cur = 0;
-    Lista* nova_lista;  // Elemento auxiliar
+    Lista** lista_final;  // Elemento auxiliar
     Lista* l1 = listaCriar("__Out__");
     Lista* l2 = listaCriar("__temp__");
+
+    // De início se referenciam!
+    lista_final = &l1;
     // Temp
     Lista* temp_l;
-    char* curr_texto = "Out";
 
     // Roda até não haver mais operações!
     for (int i = 0; pilha_ops[i] > 0; i++) {
@@ -150,18 +154,19 @@ void calcPilha(char** texto_ents, int* pilha_ops, int aux_ent) {
                 if (tipo == LISTA) {
                     strcpy(substr, substr + 1);
                     substr[strlen(substr) - 1] = '\0';
-                } else {
+                }
+                if (tipo == TEXTO) {
                     // Assume possibilidade de ser nome se texto
                     int arr_id = arrContem(substr);
                     if (arr_id >= 0) {
                         listaCopiar(l1, *lista_arr[arr_id]);
+                        strcpy(l1->nome, (*lista_arr[arr_id]).nome);
                     } else {
-                        // "Cria" nome
-                        ;
+                        strcpy(l1->nome, substr);
                     }
+                } else {
+                    l1 = listificar(substr, l1->nome);
                 }
-                
-                l1 = listificar(substr, l1->nome);
                 substr[0] = '\0';
                 break;
             }
@@ -179,28 +184,27 @@ void calcPilha(char** texto_ents, int* pilha_ops, int aux_ent) {
         while (aux_el < aux_ent) {
             substr = texto_ents[aux_el];
             if (substr[0] != '\0') {
-                if (tipoElemento(substr) == LISTA) {
+                int tipo = tipoElemento(substr);
+                if (tipo == LISTA) {
                     strcpy(substr, substr + 1);
                     substr[strlen(substr) - 1] = '\0';
-                }
-                l2 = listificar(substr, l2->nome);
-                texto_ents[aux_el][0] = '\0';
-                break;
-            } else {
-                // Assume possibilidade de ser nome se texto
-                int arr_id = arrContem(substr);
-                if (arr_id >= 0) {
-                    listaCopiar(l2, *lista_arr[arr_id]);
+                } 
+                if (tipo == TEXTO) {
+                    // Assume possibilidade de ser nome se texto
+                    int arr_id = arrContem(substr);
+                    if (arr_id >= 0) {
+                        listaCopiar(l2, *lista_arr[arr_id]);
+                    }
                 } else {
-                    // "Cria" nome
-                    ;
+                    l2 = listificar(substr, l2->nome);
                 }
+                substr[0] = '\0';
+                break;
             }
             aux_el++;
         }
 
         substr = NULL;
-
         // Seleciona '-1' caso o ent_final não estiver definido ainda
         // Senão, seleciona operação escolhida
         // switch ((l1->tamanho && l2->tamanho) ? aux_op : -1)
@@ -211,18 +215,16 @@ void calcPilha(char** texto_ents, int* pilha_ops, int aux_ent) {
             // Assim preserva a predominância do l1
             // Deve ahver jeitos melhores...
             // TODO: Consertar isso!
-            listaCopiar(l1, *l2);
-            nova_lista = listaCriar(curr_texto);
-            listaCopiar(nova_lista, *l1);
-
+            (*lista_final) = listaCriar(l1->nome);
+            listaCopiar((*lista_final), *l2);
+            strcpy(l1->nome, "__Out__");
+            
             // TODO: Parar de sempre ficar colocando o aux_op como -1 em TODOS os cases!
             aux_op = -1;
             break;
         case 1: // ^
             // Seleciona apenas os ids especificados
-            nova_lista = listaCriar(curr_texto);
-            listaCopiar(nova_lista, *l1);
-            listaRecortar(l1, *temp_l);
+            l1 = listaRecortar(l1, *l2);
 
             aux_op = -1;
         break;
@@ -231,37 +233,40 @@ void calcPilha(char** texto_ents, int* pilha_ops, int aux_ent) {
         case 4: // /
         case 5: // -
         case 6: // +
-            // listaOperar(ent_final, *temp_l, aux_op);
             listaOperar(l1, *l2, aux_op);
-            listaStr(*l1);
         break;
         case 7: // v
-            if (l1->raiz == NULL) {
-                listaCopiar(l1, *temp_l);
-            }
-            else {
-                listaCosturar(l1, *temp_l, 'L');
-            }
+            listaCosturar(l1, *l2, 'R');
+            
             aux_op = -1;
             break;
         case 8: // :
             aux_op = -1;
             break;
-        default:
-            // Só por garantia to mantendo o default
-            if (l1->raiz == NULL) {
-                listaCopiar(l1, *temp_l);
-            }
-            break;
         }
         strcpy(texto_ents[pos_atual + 1], listaStr(*l1));
-
-        // if (l1->tamanho && l2->tamanho) {
-        //     listaDeletarNos(l1);
-        //     listaDeletarNos(l2);
-        // }
     }
-    listaPrintar(*l1);
+    // Varre texto_ents para ver se "sobrou" algo
+    // E aplica operação de união sobre o que sobrou
+    // Meio que o que sobre é o resultado final...
+    // TODO: Usar o nova lista baseado nisso abaixo!
+    for (int i = 0; i < MAX_LINHA_ENTS; i++) {
+        char* substr;
+        substr = texto_ents[i];
+
+        if (!substr) {
+            continue;
+        }
+        else {
+            // printf("%s", substr);
+            ;
+        }
+        // Lê cada um como se fosse elemento
+
+        // União dos elementos
+    }
+    // Meio bobinho essa coisa abaixo...
+    listaPrintar(*(*lista_final));
     arrRemover("__temp__");
     arrRemover("__Out__");
     // listaDeletar(ent_final); Por que não dava double free?
