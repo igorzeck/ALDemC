@@ -19,18 +19,17 @@ char* COMM[4][3] = {
 
 // Mudar para ordem matemática ficar no topo!
 char* OPS[] = {
-    "=", // Atribuição - 0
-    "^", // Acessor de índices - 1
+    "^", // Acessor de índices - 0
     // Matemáticos
-    "**", // Potênciação - 2
-    "*", // Multiplicação - 3
-    "/", // Divisão por inteiro - 4
-    "-", // Subtração - 5
-    "+", // Soma - 6
+    "**", // Potênciação - 1
+    "*", // Multiplicação - 2
+    "/", // Divisão por inteiro - 3
+    "-", // Subtração - 4
+    "+", // Soma - 5
     // Técnicos
-    "v", // Costura (União) - 7
-    "^", // Recorte (Intersecção de índices) - 8
-    ":", // Sequência - 9
+    "v", // Costura (União) - 6
+    ":", // Sequência - 7
+    "=", // Atribuição - 8
     "obj", // Objetos (Restantes)
     "\0" // Fim
 };
@@ -99,7 +98,7 @@ void parser(char* linha) {
     // Acho melhor um array só pro texto!!!
     // TODO: Unidimensiolizar o array 2D!
     // Entidades de texto na linha (10 entidades de nomes de MAX_TEXT caracteres)
-    char** texto_aux = (char**)calloc(MAX_LINHA_ENTS,sizeof(char*));
+    char** texto_aux = (char**)calloc(MAX_LINHA_ENTS, sizeof(char*));
 
     // Tokeninzação
     char* token = strtok(linha," ");
@@ -122,13 +121,18 @@ void parser(char* linha) {
 }
 
 // Calcula elementos baseados na lista
+// TODO: Lidar com código redundante!
 void calcPilha(char** texto_ents, int* pilha_ops, int aux_ent) {
     // Leitura dos elementos
     int aux_op = -1;
     int aux_cur = 0;
     Lista** lista_final;  // Elemento auxiliar
+
+    // Melhor manter eles fora da lista?
     Lista* l1 = listaCriar("__Out__");
     Lista* l2 = listaCriar("__temp__");
+
+    char* nome_aux = (char*)malloc(sizeof(char) * MAX_TEXT_BUFFER);
 
     // De início se referenciam!
     lista_final = &l1;
@@ -160,9 +164,9 @@ void calcPilha(char** texto_ents, int* pilha_ops, int aux_ent) {
                     int arr_id = arrContem(substr);
                     if (arr_id >= 0) {
                         listaCopiar(l1, *lista_arr[arr_id]);
-                        strcpy(l1->nome, (*lista_arr[arr_id]).nome);
+                        strcpy(nome_aux, (*lista_arr[arr_id]).nome);
                     } else {
-                        strcpy(l1->nome, substr);
+                        strcpy(nome_aux, substr);
                     }
                 } else {
                     l1 = listificar(substr, l1->nome);
@@ -210,37 +214,38 @@ void calcPilha(char** texto_ents, int* pilha_ops, int aux_ent) {
         // switch ((l1->tamanho && l2->tamanho) ? aux_op : -1)
         switch (aux_op)
         {
-        case 0: // =
-            // Meio silly, mas fazer o quê...
-            // Assim preserva a predominância do l1
-            // Deve ahver jeitos melhores...
-            // TODO: Consertar isso!
-            (*lista_final) = listaCriar(l1->nome);
-            listaCopiar((*lista_final), *l2);
-            strcpy(l1->nome, "__Out__");
-            
-            // TODO: Parar de sempre ficar colocando o aux_op como -1 em TODOS os cases!
-            aux_op = -1;
-            break;
-        case 1: // ^
+        case 0: // ^
             // Seleciona apenas os ids especificados
             l1 = listaRecortar(l1, *l2);
 
             aux_op = -1;
         break;
-        case 2: // **
-        case 3: // *
-        case 4: // /
-        case 5: // -
-        case 6: // +
+        case 1: // **
+        case 2: // *
+        case 3: // /
+        case 4: // -
+        case 5: // +
             listaOperar(l1, *l2, aux_op);
         break;
-        case 7: // v
+        case 6: // v
             listaCosturar(l1, *l2, 'R');
             
             aux_op = -1;
             break;
-        case 8: // :
+        case 7: // :
+            aux_op = -1;
+            break;
+        case 8: // =
+            // Meio silly, mas fazer o quê...
+            // Assim preserva a predominância do l1
+            // Deve ahver jeitos melhores...
+            // TODO: Consertar isso!
+            listaCopiar(l1, *l2);
+            Lista* lista_nova = listaCriar(nome_aux);
+            listaCopiar(lista_nova, *l2);
+            nome_aux[0] = '\0';
+            
+            // TODO: Parar de sempre ficar colocando o aux_op como -1 em TODOS os cases!
             aux_op = -1;
             break;
         }
@@ -250,23 +255,68 @@ void calcPilha(char** texto_ents, int* pilha_ops, int aux_ent) {
     // E aplica operação de união sobre o que sobrou
     // Meio que o que sobre é o resultado final...
     // TODO: Usar o nova lista baseado nisso abaixo!
+
+    listaDeletarNos(l1);
+    listaDeletarNos(l2);
+    // matrizPrintar(texto_ents, MAX_LINHA_ENTS);
     for (int i = 0; i < MAX_LINHA_ENTS; i++) {
         char* substr;
         substr = texto_ents[i];
 
-        if (!substr) {
-            continue;
+        if (l1->tamanho && l2->tamanho) {
+            listaCosturar(l1, *l2, 'R');
+            listaDeletarNos(l2);
         }
-        else {
-            // printf("%s", substr);
-            ;
-        }
-        // Lê cada um como se fosse elemento
 
-        // União dos elementos
+        if (substr && *substr) {
+            // l1
+            if (!(l1->tamanho)) {
+                int tipo = tipoElemento(substr);
+                if (tipo == LISTA) {
+                    strcpy(substr, substr + 1);
+                    substr[strlen(substr) - 1] = '\0';
+                }
+                if (tipo == TEXTO) {
+                    // Assume possibilidade de ser nome se texto
+                    int arr_id = arrContem(substr);
+                    if (arr_id >= 0) {
+                        listaCopiar(l1, *lista_arr[arr_id]);
+                        strcpy(l1->nome, (*lista_arr[arr_id]).nome);
+                    } else {
+                        strcpy(l1->nome, substr);
+                    }
+                } else {
+                    l1 = listificar(substr, l1->nome);
+                }
+                substr[0] = '\0';
+                continue;
+            }
+        
+            // l2
+            if (!(l2->tamanho)) {
+                int tipo = tipoElemento(substr);
+                if (tipo == LISTA) {
+                    strcpy(substr, substr + 1);
+                    substr[strlen(substr) - 1] = '\0';
+                } 
+                if (tipo == TEXTO) {
+                    // Assume possibilidade de ser nome se texto
+                    int arr_id = arrContem(substr);
+                    if (arr_id >= 0) {
+                        listaCopiar(l2, *lista_arr[arr_id]);
+                    }
+                } else {
+                    l2 = listificar(substr, l2->nome);
+                }
+                substr[0] = '\0';
+                continue;
+            }
+        }
     }
+
     // Meio bobinho essa coisa abaixo...
     listaPrintar(*(*lista_final));
+    
     arrRemover("__temp__");
     arrRemover("__Out__");
     // listaDeletar(ent_final); Por que não dava double free?
@@ -303,11 +353,15 @@ void interface(char* str_inicial) {
     int comm = -1;
     // strcmp retorna 0 'False' quando comparação está correta
     while (TRUE) {
-        printf("> ");
         // Usa esse regex do scanset (%) 
         // para ler linha até um newline ser encontrado:
-        if (linha[0] == '\0') {
+        while (linha[0] == '\0') {
+            printf("> ");
             scanf("%[^\n]", linha);
+            
+            // Consome newline que sobrou
+            char c;
+            scanf("%c", &c);
         }
         
         // Split em 'C' (feito por espaço por agora)
@@ -333,12 +387,9 @@ void interface(char* str_inicial) {
             // Lê linha como conjunto de listas
             parser(linha);
         }
-        // Consome o newline que sobrou
+
         printf("\n");
-
-        char c;
-        scanf("%c", &c);
-
+        
         // "Apaga" linha
         linha[0] = '\0';
     }

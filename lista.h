@@ -114,7 +114,7 @@ void arrAdicionar(Lista* tba) {
         // Pula elementos com conteúdos
         if (lista_arr[i] != NULL) {
             if (strcmp(tba->nome, lista_arr[i]->nome) == 0) {
-                free(lista_arr[i]);
+                listaDeletar(lista_arr[i]);
                 lista_arr[i] = tba;
                 return;
             }
@@ -357,7 +357,7 @@ void listaDeletar(Lista* lista){
     listaDeletarNos(lista);
     
     // Garantia para caso tente acessar deletado
-    strcpy(lista->nome, "DELETADO");
+    // strcpy(lista->nome, "DELETADO");
     // lista->tamanho = 0;
     
     free(lista);
@@ -377,19 +377,19 @@ void listaOperar(Lista* dest, Lista l1, int op) {
     while ((no_atual != NULL) && (no_aux != NULL)) {
         // Soma valores
         switch(op) {
-            case 2:  // **
+            case 1:  // **
                 no_atual->valor = pot(no_atual->valor, no_aux->valor);
                 break;
-            case 3: // *
+            case 2: // *
                 no_atual->valor *= no_aux->valor;
                 break;
-            case 4: // /
+            case 3: // /
                 no_atual->valor /= no_aux->valor;
                 break;
-            case 5: // -
+            case 4: // -
                 no_atual->valor -= no_aux->valor;
                 break;
-            case 6: // +
+            case 5: // +
                 no_atual->valor += no_aux->valor;
                 break;
         }
